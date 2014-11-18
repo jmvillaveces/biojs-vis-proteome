@@ -1,0 +1,36 @@
+{
+  "name": "biojs-vis-proteome",
+  "version": "1.0.0",
+  "description": "A BioJS component for dynamic, multilevel visualisation of proteomes in UniProt.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmVillaveces/biojs-vis-proteome.git"
+  },
+  "keywords": [
+    "proteome",
+    "uniprot",
+    "biojs"
+  ],
+  "author": "jmVillaveces",
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "https://github.com/jmVillaveces/biojs-vis-proteome/issues"
+  },
+  "homepage": "https://github.com/jmVillaveces/biojs-vis-proteome",
+  "devDependencies": {
+    "grunt": "^0.4.5",
+    "grunt-browserify": "^3.2.0",
+    "grunt-contrib-clean": "^0.6.0",
+    "grunt-contrib-copy": "^0.7.0",
+    "grunt-contrib-jshint": "^0.10.0"
+  },
+  "dependencies": {
+    "biojs-events": "0.0.4",
+    "d3": "^3.4.13",
+    "underscore": "^1.7.0"
+  }
+}
