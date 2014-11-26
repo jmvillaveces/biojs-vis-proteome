@@ -49,6 +49,24 @@ var taxa = function(data){
     });
 };
 
+taxa.getNodes = function(){
+    return _nodesMap;
+};
+
+taxa.getParents = function(taxId){
+    
+    var nodes = [], node = _getClone(taxId);
+    
+    var getParents = function myself(node){
+        if(node.taxId !== 1){
+            nodes.push(node);
+            myself(_getClone(node.parentTaxId));
+        }
+    }(node);
+    
+    return nodes;
+};
+
 taxa.get = function(taxId){
     var root = _getClone(taxId);
     _getTree(root);

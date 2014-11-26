@@ -53,19 +53,117 @@ var _getData = function(){
         }
         Taxa(data);
         _data = Taxa.getReduced(_opt.rootTaxa);
+        
+        controlbar
+            .el(_opt.el)
+            .nodes(Taxa.getNodes()).init()
+            .on('downloadClicked', function(a){
+                var html ='<svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="'+_opt.width+'" height="'+_opt.height+'">' + 
+                    Vis.svg().node().innerHTML +'</svg>';
+                
+            
+                var l = document.createElement('a');
+                l.download = 'sample.svg';
+                l.href = 'data:image/svg+xml;base64,' + btoa(html);
+                l.click();
+            })
+            .on('aboutClicked', function(){
+                
+            })
+            .on('settingsClicked', function(){
+                
+            })
+            .on('resultClicked', function(d){
+    
+            })
+            .on('radialClicked', function(d){
+                Vis.layout('radial').update();
+            })
+            .on('treeClicked', function(d){
+                Vis.layout('tree').update();
+            });
+        
         _update();
-    });   
+    });
 };
 
 // Updates the visualisation
 var _update = function(){
-    Vis(_opt);
     Vis.data(_data).update();
+    _updateNavLine();
+};
+
+/**
+  * Update the navigation line
+  *
+  * @param {object} node The starting taxa to render the tree
+  *
+  */
+var _updateNavLine = function(){
     
-    setTimeout(function(){
-        Vis.data(Taxa.getReduced(337050)).layout('tree').update();
-    }, 1000);
+    var nodes = Taxa.getParents(_data.taxId).reverse();
+    var line = _navBar.selectAll('line').data([{id:'navLine'}]);
     
+    // Init the node style scale
+    var styleScale = d3.scale.ordinal()
+            .domain(['CP','RP','-'])
+            .range(_opt.nodeColours);
+    
+    //Enter
+    line.enter().append('line');
+        
+    //Update
+    line.attr('x1', 0)
+        .attr('y1', 12)
+        .attr('x2', nodes.length*20)
+        .attr('y2', 12)
+        .style('stroke', '#ccc');
+        
+    //Remove
+    line.exit().remove();
+        
+    var circle = _navBar.selectAll('circle').data(nodes);
+        
+    //Enter
+    circle.enter().append('circle')
+        .on('mouseover', function(d){
+            d3.select(this).transition().attr('r', 10).style('cursor','pointer');
+        })
+        .on('mouseout', function(d){
+            d3.select(this).transition().attr('r', 4).style('cursor','default');
+        })
+        .on('click', function(d){
+            _data = Taxa.get(d.taxId);
+            _update();
+        }).append("title").text(function(d) { return d.name + ' ('+d.taxId+')'; });
+        
+    //Update
+    circle.attr('cx', function(d,i){return i*20 + 20;})
+        .attr('cy', 12)
+        .attr('r', 4)
+        .attr('stroke-width', function(d){ return 1.5; })
+        .attr('stroke', function(d){return styleScale(d.category);})
+        .attr('fill', function(d){ return (d.taxId === _data.taxId) ? styleScale(d.category) : '#fff';});
+        
+    //Remove
+    circle.exit().remove();
+        
+    var data =  _.isUndefined(_.last(nodes)) ? [] : [_.last(nodes)];
+    var text = _navBar.selectAll('text').data(data);
+
+    //Enter
+    text.enter().append('text');
+        
+    //Update
+    text.text( function (d) { return d.name + ' ('+d.taxId+')'; })
+        .attr('x', (nodes.length-1) * 20 + 20)
+        .attr('y', 30)
+        .attr('font-family', 'Helvetica, arial, freesans, clean, sans-serif')
+        .attr('text-anchor', 'right')
+        .attr('font-size', 12);
+        
+    //Remove
+    text.exit().remove();
 };
 
 //Public members
@@ -73,6 +171,28 @@ var proteome = function(options){
     //extend options
     _.extend(_opt, options);
     
+    _toolTip = Tooltip(_opt.el); //init tooltip
+    
+    //Init Vis
+    Vis(_opt).on('click', function(d){
+        _data = d;
+        _update();
+    })
+    .on('mouseOver', function(d, coords){
+        if(_.isNull(_toolTip)) return;
+        _toolTip.showTooltip(d.name, coords);
+    })
+    .on('mouseOut', function(d){           
+        if(_.isNull(_toolTip)) return;
+        _toolTip.hideTooltip();
+    });
+    
+    //Init navigation bar
+    _navBar = d3.select('#'+_opt.el).append('svg')
+            .attr('width', _opt.width)
+            .attr('height', 50);
+    
+    //Get data
     _getData();
 };
 
@@ -81,13 +201,14 @@ module.exports = Proteome = proteome;
 },{"./controlbar.js":3,"./dialog.js":4,"./taxa.js":5,"./tooltip.js":6,"./vis.js":7,"biojs-events":8,"d3":11,"underscore":12}],3:[function(require,module,exports){
 var _ = require('underscore');
 
-var _el = null,
-    _nodes = null;
+var _el = null, _nodes = null;
 
-var _EVT_ON_DOWNLOAD_CLICKED= 'onDownloadClicked';
-var _EVT_ON_ABOUT_CLICKED= 'onAboutClicked';
-var _EVT_ON_SETTINGS_CLICKED= 'onSettingsClicked';
-var _EVT_ON_RESULT_CLICKED= 'onResultClicked';
+var _EVT_DOWNLOAD_CLICKED= 'downloadClicked';
+var _EVT_ABOUT_CLICKED= 'aboutClicked';
+var _EVT_SETTINGS_CLICKED= 'settingsClicked';
+var _EVT_RESULT_CLICKED= 'resultClicked';
+var _EVT_RADIAL_CLICKED= 'radialClicked';
+var _EVT_TREE_CLICKED= 'treeClicked';
 
 //Public members
 var controlbar = function(){};
@@ -139,7 +260,8 @@ controlbar.init = function(){
                         .html('<a href="#">'+d.name+'<br/><span>'+d.taxId+'</span></a>')
                         .on('click', function(){
                             d3.selectAll('table.browse').style('display', 'none');
-                            controlbar.trigger(_EVT_ON_RESULT_CLICKED, d);
+                            d3.event.preventDefault();
+                            controlbar.trigger(_EVT_RESULT_CLICKED, d);
                         }); 
                 });
                     
@@ -158,16 +280,16 @@ controlbar.init = function(){
     tr.append('td').attr('class','settings').append('div')
         .attr('class', 'sprite sprite-settings')
         .on('click', function(){
-            controlbar.trigger(_EVT_ON_SETTINGS_CLICKED, this);
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_SETTINGS_CLICKED, this);
         });
          
     //Download
     tr.append('td').attr('class','settings').append('a')
-        .attr('target', '_blank')
         .attr('href', '#')
-        .attr('download', 'network.png')
         .on('click', function(){
-            controlbar.trigger(_EVT_ON_DOWNLOAD_CLICKED, this);
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_DOWNLOAD_CLICKED, this);
         })
         .append('div')
         .attr('class', 'sprite sprite-save-image');
@@ -177,8 +299,47 @@ controlbar.init = function(){
         .attr('alt', 'About')
         .attr('class', 'sprite sprite-about')
         .on('click', function(){
-            controlbar.trigger(_EVT_ON_ABOUT_CLICKED, this);
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_ABOUT_CLICKED, this);
         });
+    
+    //Radial radio !! 0.0
+    var div = tr.append('td').append('div');
+    
+    div.append('input')
+        .attr('id','radio1')
+        .attr('type', 'radio')
+        .attr('name', 'layout')
+        .property('checked', 'true')
+        .attr('class', 'radio')
+        .on('change', function(){
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_RADIAL_CLICKED, this);
+        });
+    
+    div.append('label')
+        .attr('for', 'radio1')
+        .attr('style', 'font-family:Helvetica, arial, freesans, clean, sans-serif')
+        .text('Radial');
+    
+    //Tree radio
+    div = tr.append('td').append('div');
+    
+    div.append('input')
+        .attr('id','radio2')
+        .attr('type', 'radio')
+        .attr('name', 'layout')
+        .attr('class', 'radio')
+        .on('change', function(){
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_TREE_CLICKED, this);
+        });
+    
+    div.append('label')
+        .attr('for', 'radio2')
+        .attr('style', 'font-family:Helvetica, arial, freesans, clean, sans-serif')
+        .text('Tree');
+
     
     return controlbar;
 };
@@ -276,6 +437,24 @@ var taxa = function(data){
     });
 };
 
+taxa.getNodes = function(){
+    return _nodesMap;
+};
+
+taxa.getParents = function(taxId){
+    
+    var nodes = [], node = _getClone(taxId);
+    
+    var getParents = function myself(node){
+        if(node.taxId !== 1){
+            nodes.push(node);
+            myself(_getClone(node.parentTaxId));
+        }
+    }(node);
+    
+    return nodes;
+};
+
 taxa.get = function(taxId){
     var root = _getClone(taxId);
     _getTree(root);
@@ -369,7 +548,32 @@ var _opt = null,
     _svg = null,
     _g = null,
     _data = null,
-    _layout = null;
+    _layout = 'radial',
+    _styleScale = null, //color scale
+    _sizeScale = null,
+    _tg = null; //transform group
+
+//Events
+var _EVT_MOUSE_OVER = 'mouseOver', _EVT_MOUSE_OUT = 'mouseOut', _EVT_CLICK = 'click';
+
+var _createSizeScale = function(){
+    
+    var max =0;
+    var getMax = function self (node){
+        var ch = node.children || [];
+        
+        if(ch.length > max) max = ch.length;
+
+        _.each(ch, function(){
+            self(ch, max);
+        });
+    }(_data, max);
+    
+    // Init the node style scale
+    _sizeScale = d3.scale.ordinal()
+                    .domain([0, max])
+                    .range([4,6]);
+};
 
 //Radial Layout
 var _radial = function(){
@@ -396,18 +600,18 @@ var _radial = function(){
     var tree = d3.layout.tree()
         .size([360, diameter/2])
         .sort(function comparator(a, b) { return d3.ascending(a.name, b.name); })
-        .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+        .separation(function(a, b) { return (a.parent == b.parent ? 1 : 5) / a.depth; });
     
     var nodes = tree.nodes(_data);
     
     _.each(nodes, function(d){
         if(_data.taxId === d.taxId) return;
-        d.y = d.parent.y + 12*(d.children ? d.children.length+1 : 1); 
+        d.y = d.parent.y + 15*(d.children ? d.children.length + 1 : 1); 
     });
     
     var links = tree.links(nodes);
     
-    links = _g.selectAll('.link').data(links, function(d) { return d.source.taxId + '-' + d.target.taxId; });
+    links = _g.selectAll('.link').data(links);
     
     links.enter().append('path')
             .attr('class', 'link')
@@ -421,15 +625,27 @@ var _radial = function(){
                 .attr('class', 'node')
                 .attr('stroke-width', 1.5)
                 .attr('stroke', function(d){return _styleScale(d.category);})
-                .attr('fill', '#fff')
-                .attr('r', 4.5);
+                .attr('r', function(d){ var ch = d.children || []; return _sizeScale(ch.length);})
+                .on('mouseover', function(d){
+                    d3.select(this).style('cursor','pointer');
+                    
+                    var coords = [d3.event.pageX, d3.event.pageY];
+                    vis.trigger(_EVT_MOUSE_OVER, d, coords);
+                })
+                .on('mouseout', function(d){
+                    d3.select(this).style('cursor','default');
+                    vis.trigger(_EVT_MOUSE_OUT, d);
+                })
+                .on('click', function(d){vis.trigger(_EVT_CLICK, d);});
     
-    var t = _g.transition().duration(500).attr('transform', 'translate(' + diameter / 2 + ',' + diameter / 2 + ')');
+    var translate = [diameter / 2, diameter / 2];
+    var t = _g.transition().duration(500).attr('transform', 'translate(' + translate + ')');
     
     var link = t.selectAll('.link')
                 .attr('d', step);
     
     var node = t.selectAll('.node')
+                .attr('fill', function(d){ return (d.taxId === _data.taxId) ? _styleScale(d.category) : '#fff';})
                 .attr('transform', function(d) { return 'rotate(' + (d.x - 90) + ')translate(' + d.y + ')'; });
     
     links.exit().remove();
@@ -443,9 +659,16 @@ var _tree = function(){
     
     var diagonal = d3.svg.diagonal().projection(function(d) { return [d.y, d.x]; });
     
-    var nodes = tree.nodes(_data), links = tree.links(nodes);
+    var nodes = tree.nodes(_data); 
     
-    links = _g.selectAll('.link').data(links, function(d) {  return d.source.taxId + '-' + d.target.taxId; });
+    _.each(nodes, function(d){
+        if(_data.taxId === d.taxId) return;
+        d.y = d.parent.y + 50*(d.children ? d.children.length + 1 : 1); 
+    });
+    
+    var links = tree.links(nodes);
+    
+    links = _g.selectAll('.link').data(links);
     
     links.enter().append('path')
             .attr('class', 'link')
@@ -459,16 +682,27 @@ var _tree = function(){
                 .attr('class', 'node')
                 .attr('stroke-width', 1.5)
                 .attr('stroke', function(d){return _styleScale(d.category);})
-                .attr('fill', '#fff')
-                .attr('r', 4.5);
+                .attr('r', function(d){ var ch = d.children || []; return _sizeScale(ch.length);})
+                .on('mouseover', function(d){
+                    d3.select(this).style('cursor','pointer');
+                    
+                    var coords = [d3.event.pageX, d3.event.pageY];
+                    vis.trigger(_EVT_MOUSE_OVER, d, coords);
+                })
+                .on('mouseout', function(d){
+                    d3.select(this).style('cursor','default');
+                    vis.trigger(_EVT_MOUSE_OUT, d);
+                })
+                .on('click', function(d){vis.trigger(_EVT_CLICK, d);});
     
-    
-    var t = _g.transition().duration(500).attr('transform', 'translate(' + 5 + ',' + 0 + ')');
+    var translate = [5, 0];
+    var t = _g.transition().duration(500).attr('transform', 'translate(' + translate + ')');
     
     var link = t.selectAll('.link')
                 .attr('d', diagonal);
     
     var node = t.selectAll('.node')
+                .attr('fill', function(d){ return (d.taxId === _data.taxId) ? _styleScale(d.category) : '#fff';})
                 .attr('transform', function(d) { return 'translate(' + d.y + ',' + d.x + ')'; });
     
     links.exit().remove();
@@ -478,7 +712,7 @@ var _tree = function(){
 /**
   * Creates a taxa object
   */
-var vis = function(opt){
+var vis = function self(opt){
     
     _opt = opt;
     
@@ -491,13 +725,22 @@ var vis = function(opt){
         .attr('width', _opt.width)
         .attr('height', _opt.height);
     
-    _g = _svg.append('g');
+    var zoom = d3.behavior.zoom()
+            .on('zoom', function(){
+                _tg.attr('transform', 'translate(' + d3.event.translate + ')scale(' + d3.event.scale + ')');
+            });
+    
+    _tg = _svg.call(zoom).append('g');
+    _g = _tg.append('g');
+    
+    return self;
 };
 
 vis.data = function(_){
      if (!arguments.length)
         return _data;
     _data = _;
+    _createSizeScale();
     return vis;
 };
 
@@ -517,8 +760,12 @@ vis.update = function(){
     return vis;
 };
 
+vis.svg = function(){return _svg;};
+
+//Add events
+_.extend(vis, require('biojs-events'));
 module.exports = vis;
-},{"d3":11,"underscore":12}],8:[function(require,module,exports){
+},{"biojs-events":8,"d3":11,"underscore":12}],8:[function(require,module,exports){
 var events = require("backbone-events-standalone");
 
 events.onAll = function(callback,context){

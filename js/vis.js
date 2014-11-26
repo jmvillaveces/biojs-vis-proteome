@@ -5,7 +5,32 @@ var _opt = null,
     _svg = null,
     _g = null,
     _data = null,
-    _layout = null;
+    _layout = 'radial',
+    _styleScale = null, //color scale
+    _sizeScale = null,
+    _tg = null; //transform group
+
+//Events
+var _EVT_MOUSE_OVER = 'mouseOver', _EVT_MOUSE_OUT = 'mouseOut', _EVT_CLICK = 'click';
+
+var _createSizeScale = function(){
+    
+    var max =0;
+    var getMax = function self (node){
+        var ch = node.children || [];
+        
+        if(ch.length > max) max = ch.length;
+
+        _.each(ch, function(){
+            self(ch, max);
+        });
+    }(_data, max);
+    
+    // Init the node style scale
+    _sizeScale = d3.scale.ordinal()
+                    .domain([0, max])
+                    .range([4,6]);
+};
 
 //Radial Layout
 var _radial = function(){
@@ -32,18 +57,18 @@ var _radial = function(){
     var tree = d3.layout.tree()
         .size([360, diameter/2])
         .sort(function comparator(a, b) { return d3.ascending(a.name, b.name); })
-        .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
+        .separation(function(a, b) { return (a.parent == b.parent ? 1 : 5) / a.depth; });
     
     var nodes = tree.nodes(_data);
     
     _.each(nodes, function(d){
         if(_data.taxId === d.taxId) return;
-        d.y = d.parent.y + 12*(d.children ? d.children.length+1 : 1); 
+        d.y = d.parent.y + 15*(d.children ? d.children.length + 1 : 1); 
     });
     
     var links = tree.links(nodes);
     
-    links = _g.selectAll('.link').data(links, function(d) { return d.source.taxId + '-' + d.target.taxId; });
+    links = _g.selectAll('.link').data(links);
     
     links.enter().append('path')
             .attr('class', 'link')
@@ -57,15 +82,27 @@ var _radial = function(){
                 .attr('class', 'node')
                 .attr('stroke-width', 1.5)
                 .attr('stroke', function(d){return _styleScale(d.category);})
-                .attr('fill', '#fff')
-                .attr('r', 4.5);
+                .attr('r', function(d){ var ch = d.children || []; return _sizeScale(ch.length);})
+                .on('mouseover', function(d){
+                    d3.select(this).style('cursor','pointer');
+                    
+                    var coords = [d3.event.pageX, d3.event.pageY];
+                    vis.trigger(_EVT_MOUSE_OVER, d, coords);
+                })
+                .on('mouseout', function(d){
+                    d3.select(this).style('cursor','default');
+                    vis.trigger(_EVT_MOUSE_OUT, d);
+                })
+                .on('click', function(d){vis.trigger(_EVT_CLICK, d);});
     
-    var t = _g.transition().duration(500).attr('transform', 'translate(' + diameter / 2 + ',' + diameter / 2 + ')');
+    var translate = [diameter / 2, diameter / 2];
+    var t = _g.transition().duration(500).attr('transform', 'translate(' + translate + ')');
     
     var link = t.selectAll('.link')
                 .attr('d', step);
     
     var node = t.selectAll('.node')
+                .attr('fill', function(d){ return (d.taxId === _data.taxId) ? _styleScale(d.category) : '#fff';})
                 .attr('transform', function(d) { return 'rotate(' + (d.x - 90) + ')translate(' + d.y + ')'; });
     
     links.exit().remove();
@@ -79,9 +116,16 @@ var _tree = function(){
     
     var diagonal = d3.svg.diagonal().projection(function(d) { return [d.y, d.x]; });
     
-    var nodes = tree.nodes(_data), links = tree.links(nodes);
+    var nodes = tree.nodes(_data); 
     
-    links = _g.selectAll('.link').data(links, function(d) {  return d.source.taxId + '-' + d.target.taxId; });
+    _.each(nodes, function(d){
+        if(_data.taxId === d.taxId) return;
+        d.y = d.parent.y + 50*(d.children ? d.children.length + 1 : 1); 
+    });
+    
+    var links = tree.links(nodes);
+    
+    links = _g.selectAll('.link').data(links);
     
     links.enter().append('path')
             .attr('class', 'link')
@@ -95,16 +139,27 @@ var _tree = function(){
                 .attr('class', 'node')
                 .attr('stroke-width', 1.5)
                 .attr('stroke', function(d){return _styleScale(d.category);})
-                .attr('fill', '#fff')
-                .attr('r', 4.5);
+                .attr('r', function(d){ var ch = d.children || []; return _sizeScale(ch.length);})
+                .on('mouseover', function(d){
+                    d3.select(this).style('cursor','pointer');
+                    
+                    var coords = [d3.event.pageX, d3.event.pageY];
+                    vis.trigger(_EVT_MOUSE_OVER, d, coords);
+                })
+                .on('mouseout', function(d){
+                    d3.select(this).style('cursor','default');
+                    vis.trigger(_EVT_MOUSE_OUT, d);
+                })
+                .on('click', function(d){vis.trigger(_EVT_CLICK, d);});
     
-    
-    var t = _g.transition().duration(500).attr('transform', 'translate(' + 5 + ',' + 0 + ')');
+    var translate = [5, 0];
+    var t = _g.transition().duration(500).attr('transform', 'translate(' + translate + ')');
     
     var link = t.selectAll('.link')
                 .attr('d', diagonal);
     
     var node = t.selectAll('.node')
+                .attr('fill', function(d){ return (d.taxId === _data.taxId) ? _styleScale(d.category) : '#fff';})
                 .attr('transform', function(d) { return 'translate(' + d.y + ',' + d.x + ')'; });
     
     links.exit().remove();
@@ -114,7 +169,7 @@ var _tree = function(){
 /**
   * Creates a taxa object
   */
-var vis = function(opt){
+var vis = function self(opt){
     
     _opt = opt;
     
@@ -127,13 +182,22 @@ var vis = function(opt){
         .attr('width', _opt.width)
         .attr('height', _opt.height);
     
-    _g = _svg.append('g');
+    var zoom = d3.behavior.zoom()
+            .on('zoom', function(){
+                _tg.attr('transform', 'translate(' + d3.event.translate + ')scale(' + d3.event.scale + ')');
+            });
+    
+    _tg = _svg.call(zoom).append('g');
+    _g = _tg.append('g');
+    
+    return self;
 };
 
 vis.data = function(_){
      if (!arguments.length)
         return _data;
     _data = _;
+    _createSizeScale();
     return vis;
 };
 
@@ -153,4 +217,8 @@ vis.update = function(){
     return vis;
 };
 
+vis.svg = function(){return _svg;};
+
+//Add events
+_.extend(vis, require('biojs-events'));
 module.exports = vis;

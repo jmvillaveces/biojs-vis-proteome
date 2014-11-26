@@ -1,12 +1,13 @@
 var _ = require('underscore');
 
-var _el = null,
-    _nodes = null;
+var _el = null, _nodes = null;
 
-var _EVT_ON_DOWNLOAD_CLICKED= 'onDownloadClicked';
-var _EVT_ON_ABOUT_CLICKED= 'onAboutClicked';
-var _EVT_ON_SETTINGS_CLICKED= 'onSettingsClicked';
-var _EVT_ON_RESULT_CLICKED= 'onResultClicked';
+var _EVT_DOWNLOAD_CLICKED= 'downloadClicked';
+var _EVT_ABOUT_CLICKED= 'aboutClicked';
+var _EVT_SETTINGS_CLICKED= 'settingsClicked';
+var _EVT_RESULT_CLICKED= 'resultClicked';
+var _EVT_RADIAL_CLICKED= 'radialClicked';
+var _EVT_TREE_CLICKED= 'treeClicked';
 
 //Public members
 var controlbar = function(){};
@@ -58,7 +59,8 @@ controlbar.init = function(){
                         .html('<a href="#">'+d.name+'<br/><span>'+d.taxId+'</span></a>')
                         .on('click', function(){
                             d3.selectAll('table.browse').style('display', 'none');
-                            controlbar.trigger(_EVT_ON_RESULT_CLICKED, d);
+                            d3.event.preventDefault();
+                            controlbar.trigger(_EVT_RESULT_CLICKED, d);
                         }); 
                 });
                     
@@ -77,16 +79,16 @@ controlbar.init = function(){
     tr.append('td').attr('class','settings').append('div')
         .attr('class', 'sprite sprite-settings')
         .on('click', function(){
-            controlbar.trigger(_EVT_ON_SETTINGS_CLICKED, this);
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_SETTINGS_CLICKED, this);
         });
          
     //Download
     tr.append('td').attr('class','settings').append('a')
-        .attr('target', '_blank')
         .attr('href', '#')
-        .attr('download', 'network.png')
         .on('click', function(){
-            controlbar.trigger(_EVT_ON_DOWNLOAD_CLICKED, this);
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_DOWNLOAD_CLICKED, this);
         })
         .append('div')
         .attr('class', 'sprite sprite-save-image');
@@ -96,8 +98,47 @@ controlbar.init = function(){
         .attr('alt', 'About')
         .attr('class', 'sprite sprite-about')
         .on('click', function(){
-            controlbar.trigger(_EVT_ON_ABOUT_CLICKED, this);
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_ABOUT_CLICKED, this);
         });
+    
+    //Radial radio !! 0.0
+    var div = tr.append('td').append('div');
+    
+    div.append('input')
+        .attr('id','radio1')
+        .attr('type', 'radio')
+        .attr('name', 'layout')
+        .property('checked', 'true')
+        .attr('class', 'radio')
+        .on('change', function(){
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_RADIAL_CLICKED, this);
+        });
+    
+    div.append('label')
+        .attr('for', 'radio1')
+        .attr('style', 'font-family:Helvetica, arial, freesans, clean, sans-serif')
+        .text('Radial');
+    
+    //Tree radio
+    div = tr.append('td').append('div');
+    
+    div.append('input')
+        .attr('id','radio2')
+        .attr('type', 'radio')
+        .attr('name', 'layout')
+        .attr('class', 'radio')
+        .on('change', function(){
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_TREE_CLICKED, this);
+        });
+    
+    div.append('label')
+        .attr('for', 'radio2')
+        .attr('style', 'font-family:Helvetica, arial, freesans, clean, sans-serif')
+        .text('Tree');
+
     
     return controlbar;
 };
