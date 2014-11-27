@@ -6,7 +6,7 @@ var tooltip = function(el){
     
     var  xOffset = 20, yOffset = 10;
         
-    var toolt = d3.select('#'+el).append('div')
+    var toolt = d3.select(el).append('div')
                     .attr('class', 'tooltip')
                     .style('display', 'none');
     
