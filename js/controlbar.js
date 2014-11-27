@@ -8,6 +8,7 @@ var _EVT_SETTINGS_CLICKED= 'settingsClicked';
 var _EVT_RESULT_CLICKED= 'resultClicked';
 var _EVT_RADIAL_CLICKED= 'radialClicked';
 var _EVT_TREE_CLICKED= 'treeClicked';
+var _EVT_FORCE_CLICKED= 'forceClicked';
 
 //Public members
 var controlbar = function(){};
@@ -138,6 +139,24 @@ controlbar.init = function(){
         .attr('for', 'radio2')
         .attr('style', 'font-family:Helvetica, arial, freesans, clean, sans-serif')
         .text('Tree');
+    
+    //Force radio
+    div = tr.append('td').append('div');
+    
+    div.append('input')
+        .attr('id','radio3')
+        .attr('type', 'radio')
+        .attr('name', 'layout')
+        .attr('class', 'radio')
+        .on('change', function(){
+            d3.event.preventDefault();
+            controlbar.trigger(_EVT_FORCE_CLICKED, this);
+        });
+    
+    div.append('label')
+        .attr('for', 'radio3')
+        .attr('style', 'font-family:Helvetica, arial, freesans, clean, sans-serif')
+        .text('Force');
 
     
     return controlbar;
