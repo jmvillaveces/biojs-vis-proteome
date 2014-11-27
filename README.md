@@ -8,8 +8,8 @@ Click [here](http://jmvillaveces.github.io/biojs-vis-proteome/example.html) to s
 Here is the code for the example above:
 ```
 <meta charset="utf-8">
-<link rel="stylesheet" type="text/css" href="https://rawgit.com/jmvillaveces/biojs-vis-proteome/master/build/css/proteome.css">
-<script src="https://rawgit.com/jmvillaveces/biojs-vis-proteome/master/build/biojs-vis-proteome.js"></script>
+<link rel="stylesheet" type="text/css" href="http://rawgit.com/jmvillaveces/biojs-vis-proteome/master/build/css/proteome.css">
+<script src="http://rawgit.com/jmvillaveces/biojs-vis-proteome/master/build/biojs-vis-proteome.js"></script>
 
 <div id=yourDiv style="height:700px"></div>
 
