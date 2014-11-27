@@ -5,7 +5,7 @@ _ = require('underscore');
   */
 var dialog = function(el, content){
         
-    var popup = d3.select('#'+el).append('div')
+    var popup = d3.select(el).append('div')
                         .attr('class', 'dialog')
                         .style('display', 'none');
         

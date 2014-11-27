@@ -30,7 +30,7 @@ controlbar.nodes = function(_){
 
 controlbar.init = function(){
     
-    var tr = d3.select('#'+_el).append('table')
+    var tr = d3.select(_el).append('table')
             .style('position', 'absolute').append('tr');
          
     //Input

@@ -1,3 +1,7 @@
+var browserify = require("browserify");
+var fs = require("fs");
+var mkdirp = require("mkdirp");
+
 module.exports = function(grunt) {
     
     // Project configuration.
@@ -40,8 +44,42 @@ module.exports = function(grunt) {
     
     // Load the plugins
     grunt.loadNpmTasks('grunt-contrib-jshint');
-    grunt.loadNpmTasks('grunt-browserify');
+    //grunt.loadNpmTasks('grunt-browserify');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-simple-mocha');
+
+
+  grunt.registerTask('browserify', 'Browserifies the source', function(){
+    // task is async
+    var done = this.async();
+
+    // create tmp dir
+    mkdirp("build");
+
+    var ws = fs.createWriteStream('build/biojs-vis-proteome.js');
+    ws.on('finish', function () {
+      done();
+    });
+
+    // expose the pv viewer
+    var b = browserify({debug: true,hasExports: true});
+    exposeBundles(b);
+    b.bundle().pipe(ws);
+  });
+
+  // exposes the main package
+  // + checks the config whether it should expose other packages
+  function exposeBundles(b){
+    var packageConfig = require("./package.json");
+
+    b.add(packageConfig.main, {expose: packageConfig.name });
+
+    // check for addition exposed packages (not needed here)
+    if(packageConfig.sniper !== undefined && packageConfig.sniper.exposed !== undefined){
+      for(var i=0; i<packageConfig.sniper.exposed.length; i++){
+        b.require(packageConfig.sniper.exposed[i]);
+      }
+    }
+  }
 };

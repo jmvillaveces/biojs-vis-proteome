@@ -40,7 +40,7 @@ var _getData = function(){
         
         //If there is an error, show error message
         if(error){
-            d3.select('#'+_opt.el)
+            d3.select(_opt.el)
                 .attr('class', 'errorMSG')
                 .text(_connErrorMsg);
                 
@@ -184,7 +184,7 @@ var proteome = function(options){
     });
     
     //Init navigation bar
-    _navBar = d3.select('#'+_opt.el).append('svg')
+    _navBar = d3.select(_opt.el).append('svg')
             .attr('width', _opt.width)
             .attr('height', 50);
     
