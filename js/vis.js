@@ -178,7 +178,7 @@ var vis = function self(opt){
             .domain(['CP','RP','-'])
             .range(_opt.nodeColours);
     
-    _svg = d3.select('#'+_opt.el).append('svg')
+    _svg = d3.select(_opt.el).append('svg')
         .attr('width', _opt.width)
         .attr('height', _opt.height);
     
