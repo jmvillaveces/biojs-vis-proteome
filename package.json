@@ -4,7 +4,8 @@
   "description": "A BioJS component for dynamic, multilevel visualisation of proteomes in UniProt.",
   "main": "./index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "browser": "browserify -r ./:biojs-vis-proteome > build/bundle.js"
   },
   "repository": {
     "type": "git",
@@ -22,7 +23,7 @@
   },
   "homepage": "https://github.com/jmVillaveces/biojs-vis-proteome",
   "devDependencies": {
-    "biojs-sniper": "^0.1.1",
+    "biojs-sniper": "^0.1.2",
     "browserify": "^6.3.3",
     "chai": "^1.10.0",
     "grunt": "^0.4.5",
@@ -40,7 +41,7 @@
   },
   "sniper": {
     "js": [
-      "/build/biojs-vis-proteome.js"
+      "/build/bundle.js"
     ],
     "css": [
       "/css/proteome.css"
