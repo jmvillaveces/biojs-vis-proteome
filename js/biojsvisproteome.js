@@ -77,6 +77,9 @@ var _getData = function(){
             })
             .on('treeClicked', function(d){
                 Vis.layout('tree').update();
+            })
+            .on('forceClicked', function(d){
+                Vis.layout('force').update();
             });
         
         _update();

@@ -47,9 +47,9 @@ var _radial = function(){
           r = d.source.y,
           sweep = d.target.x > d.source.x ? 1 : 0;
       return (
-        "M" + s[0] + "," + s[1] +
-        "A" + r + "," + r + " 0 0," + sweep + " " + m[0] + "," + m[1] +
-        "L" + t[0] + "," + t[1]);
+        'M' + s[0] + ',' + s[1] +
+        'A' + r + ',' + r + ' 0 0,' + sweep + ' ' + m[0] + ',' + m[1] +
+        'L' + t[0] + ',' + t[1]);
     }
     
     var diameter = Math.min(_opt.width, _opt.height);
@@ -68,6 +68,7 @@ var _radial = function(){
     
     var links = tree.links(nodes);
     
+    _g.selectAll('.link').remove();
     links = _g.selectAll('.link').data(links);
     
     links.enter().append('path')
@@ -103,7 +104,9 @@ var _radial = function(){
     
     var node = t.selectAll('.node')
                 .attr('fill', function(d){ return (d.taxId === _data.taxId) ? _styleScale(d.category) : '#fff';})
-                .attr('transform', function(d) { return 'rotate(' + (d.x - 90) + ')translate(' + d.y + ')'; });
+                .attr('transform', function(d) { return 'rotate(' + (d.x - 90) + ')translate(' + d.y + ')'; })
+                .attr('cx', '')
+                .attr('cy', '');
     
     links.exit().remove();
     nodes.exit().remove();
@@ -125,6 +128,7 @@ var _tree = function(){
     
     var links = tree.links(nodes);
     
+    _g.selectAll('.link').remove();
     links = _g.selectAll('.link').data(links);
     
     links.enter().append('path')
@@ -159,11 +163,95 @@ var _tree = function(){
                 .attr('d', diagonal);
     
     var node = t.selectAll('.node')
+                .attr('cx', '')
+                .attr('cy', '')
                 .attr('fill', function(d){ return (d.taxId === _data.taxId) ? _styleScale(d.category) : '#fff';})
                 .attr('transform', function(d) { return 'translate(' + d.y + ',' + d.x + ')'; });
     
     links.exit().remove();
     nodes.exit().remove();
+};
+
+//Force Layout
+var _force = function(){
+    
+    var nodes = _flatten(_data),
+        links = d3.layout.tree().links(nodes);
+    
+    // Restart the force layout.
+    var force = d3.layout.force()
+        .size([_opt.width, _opt.height])
+        .on('tick', _tick)
+        .nodes(nodes)
+        .links(links)
+        .start();
+    
+    _g.selectAll('.link').remove();
+    links = _g.selectAll('.link').data(links);
+    
+    links.enter().append('line')
+        .attr('class', 'link')
+        .attr('fill', 'none')
+        .attr('stroke', '#ccc')
+        .attr('stroke-width', 1.5)
+        .attr('x1', function(d) { return d.source.x; })
+        .attr('y1', function(d) { return d.source.y; })
+        .attr('x2', function(d) { return d.target.x; })
+        .attr('y2', function(d) { return d.target.y; });
+    
+    nodes = _g.selectAll('.node').data(nodes, function(d) { return d.name; });
+    
+    nodes.enter().append('circle')
+                .attr('class', 'node')
+                .attr('stroke-width', 1.5)
+                .attr('stroke', function(d){return _styleScale(d.category);})
+                .attr('r', function(d){ var ch = d.children || []; return _sizeScale(ch.length);})
+                .on('mouseover', function(d){
+                    d3.select(this).style('cursor','pointer');
+                    
+                    var coords = [d3.event.pageX, d3.event.pageY];
+                    vis.trigger(_EVT_MOUSE_OVER, d, coords);
+                })
+                .on('mouseout', function(d){
+                    d3.select(this).style('cursor','default');
+                    vis.trigger(_EVT_MOUSE_OUT, d);
+                })
+                .on('click', function(d){vis.trigger(_EVT_CLICK, d);})
+                .call(force.drag);
+    
+    _g.transition().attr('transform', '');
+    
+    nodes.attr('fill', function(d){ return (d.taxId === _data.taxId) ? _styleScale(d.category) : '#fff';})
+        .attr('cx', function(d) { return d.x; })
+        .attr('cy', function(d) { return d.y; })
+        .attr('transform', '');
+    
+    links.exit().remove();
+    nodes.exit().remove(); 
+};
+
+var _tick = function(){
+    
+  _g.selectAll('.link').attr('x1', function(d) { return d.source.x; })
+      .attr('y1', function(d) { return d.source.y; })
+      .attr('x2', function(d) { return d.target.x; })
+      .attr('y2', function(d) { return d.target.y; });
+
+  _g.selectAll('.node').attr('cx', function(d) { return d.x; })
+      .attr('cy', function(d) { return d.y; });
+};
+
+// Returns a list of all nodes under the root.
+var _flatten = function(root){
+    var nodes = [], i = 0;
+
+    function recurse(node) {
+        if (node.children) node.children.forEach(recurse);
+        nodes.push(node);
+    }
+
+    recurse(root);
+    return nodes;
 };
 
 /**
@@ -211,8 +299,10 @@ vis.layout = function(_){
 vis.update = function(){
     if(_layout == 'tree'){
         _tree();
-    }else{
+    }else if (_layout == 'radial'){
         _radial();
+    }else{
+        _force();
     }
     return vis;
 };
