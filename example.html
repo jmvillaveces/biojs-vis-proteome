@@ -1,14 +1,14 @@
 <meta charset="utf-8">
-<link rel="stylesheet" type="text/css" href="http://rawgit.com/jmvillaveces/biojs-vis-proteome/master/build/css/proteome.css">
-<script src="http://rawgit.com/jmvillaveces/biojs-vis-proteome/master/build/biojs-vis-proteome.js"></script>
+<link rel="stylesheet" type="text/css" href="stylesheets/proteome.css">
+<script src="javascripts/biojs-vis-proteome.js"></script>
 
-<div id=yourDiv style="height:700px"></div>
+<div id="yourDiv" style="height:700px"></div>
 
 <script>
 var proteome = new Proteome({
-        el:'yourDiv', 
+        el:'#yourDiv', 
         rootTaxa:333750,
-        taxaURL: 'http://rawgit.com/jmvillaveces/biojs-vis-proteome/master/build/data/taxa.json',
+        taxaURL: 'data/taxa.json',
         width: 800,
         height:800
 });
