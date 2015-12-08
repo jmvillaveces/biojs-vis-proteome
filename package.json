@@ -1,10 +1,9 @@
 {
   "name": "biojs-vis-proteome",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "A BioJS component for dynamic, multilevel visualisation of proteomes in UniProt.",
   "main": "./index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "browser": "browserify -r ./:biojs-vis-proteome > build/bundle.js"
   },
   "repository": {
@@ -38,6 +37,9 @@
     "biojs-events": "0.0.4",
     "d3": "^3.4.13",
     "underscore": "^1.7.0"
+  },
+  "biojs": {
+    "registryHeight": "460"
   },
   "sniper": {
     "js": [
